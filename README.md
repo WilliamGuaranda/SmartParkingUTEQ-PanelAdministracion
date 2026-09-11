@@ -178,7 +178,7 @@ Las siguientes capturas muestran el flujo visual del sistema desde que se accede
 
 ### 1. Nueva opción del menú
 
-<img src="public/1.jpeg" alt="Nueva opción del menú del panel administrativo" width="100%">
+<img src="public/1.jpeg" alt="Nueva opción del menú del panel administrativo" width="70%">
 
 La interfaz incorpora una nueva opción dentro del menú lateral llamada "Monitoreo de entrada". Esta acción permite acceder rápidamente al módulo que gestiona la captura de imágenes y el reconocimiento de placas. El propósito es centralizar todo el flujo de revisión visual del parqueadero en una ruta específica del panel administrativo.
 
