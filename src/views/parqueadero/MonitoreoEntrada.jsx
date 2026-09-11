@@ -1,330 +1,308 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+/**
+ * ============================================================================
+ *  Vista: Monitoreo de entrada
+ *  Ruta:  /parqueadero/monitoreo-entrada
+ * ============================================================================
+ *  Flujo funcional
+ *  ---------------
+ *   1. El guardia captura una foto (cámara) o selecciona un JPG/PNG.
+ *   2. Se valida localmente (formato, tamaño, vacío).
+ *   3. Se envía al endpoint OCR con `fetch(POST, body=Blob)`.
+ *   4. Se muestra: imagen con placa marcada + datos del vehículo si está
+ *      en Supabase, o el estado correspondiente (no_registrado, sin_placa,
+ *      baja_confianza, multiples_placas) si no lo está.
+ *
+ *  Layout responsive
+ *  -----------------
+ *   md=6 → captura del vehículo (video + botones + preview)
+ *   md=6 → resultados (banner + tabla + imágenes)
+ *   En móvil se apilan una encima de la otra.
+ *
+ *  Ciclo de vida de recursos
+ *  -------------------------
+ *   - URL.createObjectURL → se revoca con URL.revokeObjectURL en el cleanup.
+ *   - El hook useCamara libera el MediaStream al desmontar esta vista.
+ * ============================================================================
+ */
+import React, { useEffect, useRef, useState } from 'react'
 import {
   CAlert,
-  CBadge,
   CButton,
   CCard,
   CCardBody,
   CCardHeader,
   CCol,
+  CFormSelect,
   CRow,
   CSpinner,
-  CTable,
-  CTableBody,
-  CTableDataCell,
-  CTableRow,
 } from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import {
+  cilCamera,
+  cilCarAlt,
+  cilCloudUpload,
+  cilImage,
+  cilReload,
+  cilXCircle,
+} from '@coreui/icons'
 
-const MAX_SIZE = 4 * 1024 * 1024 // 4 MiB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png']
-
-const MENSAJES_HTTP = {
-  400: 'Imagen vacía, inválida o con dimensiones no permitidas (400).',
-  413: 'La imagen supera los 4 MiB permitidos (413).',
-  415: 'Formato no admitido. Usa JPG o PNG (415).',
-  502: 'Fallo del servicio OCR o de Supabase (502). Intenta nuevamente.',
-  504: 'Tiempo de espera agotado (504). Intenta nuevamente.',
-}
+import { useCamara } from '../../hooks/useCamara'
+import { useOcrPlaca, validarImagen } from '../../hooks/useOcrPlaca'
+import ResultadoOcr from './ResultadoOcr'
 
 const MonitoreoEntrada = () => {
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
-  const streamRef = useRef(null)
-  const fileInputRef = useRef(null)
+  const {
+    videoRef,
+    camaraActiva,
+    errorCamara,
+    dispositivos,
+    dispositivoSeleccionado,
+    activarCamara,
+    detenerCamara,
+    capturarFoto,
+    seleccionarDispositivo,
+  } = useCamara()
 
-  const [streaming, setStreaming] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState(null)
-  const [blob, setBlob] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [resultado, setResultado] = useState(null)
+  const { procesando, resultado, error, detectarPlaca, limpiarResultado } = useOcrPlaca()
 
-  // ---------- Cámara ----------
-  const startCamera = async () => {
-    setError('')
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-      setStreaming(true)
-    } catch (e) {
-      setError('No se pudo acceder a la cámara: ' + e.message)
-    }
-  }
+  const [imagen, setImagen] = useState(null)
+  const [errorImagen, setErrorImagen] = useState('')
+  const inputArchivoRef = useRef(null)
 
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
-    if (videoRef.current) videoRef.current.srcObject = null
-    setStreaming(false)
-  }, [])
-
-  // Limpieza al desmontar (cambio de vista)
   useEffect(() => {
-    return () => stopCamera()
-  }, [stopCamera])
+    return () => {
+      if (imagen?.previewUrl) URL.revokeObjectURL(imagen.previewUrl)
+    }
+  }, [imagen])
 
-  // ---------- Captura ----------
-  const capturar = () => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    if (!video || !canvas || !video.videoWidth) return
-
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    canvas.toBlob(
-      (b) => {
-        if (!b) return
-        setBlob(b)
-        setPreviewUrl(URL.createObjectURL(b))
-        setResultado(null)
-        setError('')
-      },
-      'image/jpeg',
-      0.92,
-    )
+  const reemplazarImagen = (archivo, origen) => {
+    limpiarResultado()
+    setErrorImagen('')
+    setImagen((anterior) => {
+      if (anterior?.previewUrl) URL.revokeObjectURL(anterior.previewUrl)
+      return { blob: archivo, previewUrl: URL.createObjectURL(archivo), origen }
+    })
   }
 
-  // ---------- Selección de archivo ----------
-  const onFileChange = (e) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setError('')
-    if (!ALLOWED_TYPES.includes(f.type)) {
-      setError('Formato no admitido. Solo JPG o PNG.')
-      return
-    }
-    if (f.size > MAX_SIZE) {
-      setError('La imagen supera los 4 MiB permitidos.')
-      return
-    }
-    setBlob(f)
-    setPreviewUrl(URL.createObjectURL(f))
-    setResultado(null)
-  }
-
-  // ---------- Envío al endpoint ----------
-  const detectarPlaca = async () => {
-    if (!blob) return
-    setLoading(true)
-    setError('')
-    setResultado(null)
+  const manejarCapturarFoto = async () => {
     try {
-      const res = await fetch(import.meta.env.VITE_OCR_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': blob.type || 'application/octet-stream',
-        },
-        body: blob,
-      })
-
-      if (!res.ok) {
-        setError(MENSAJES_HTTP[res.status] || `Error HTTP ${res.status}`)
-        return
-      }
-
-      const data = await res.json()
-      console.log('Respuesta OCR:', data) // útil para ajustar nombres de campos
-      setResultado(data)
-    } catch (e) {
-      setError('Error de red o CORS: ' + e.message)
-    } finally {
-      setLoading(false)
+      const blob = await capturarFoto()
+      reemplazarImagen(blob, 'camara')
+    } catch (excepcion) {
+      setErrorImagen(excepcion?.message || 'No se pudo capturar la foto.')
     }
   }
 
-  const reiniciar = () => {
-    setBlob(null)
-    setPreviewUrl(null)
-    setResultado(null)
-    setError('')
-    if (fileInputRef.current) fileInputRef.current.value = ''
+  const manejarSeleccionArchivo = (evento) => {
+    const archivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!archivo) return
+
+    const mensaje = validarImagen(archivo)
+    if (mensaje) {
+      setErrorImagen(mensaje)
+      return
+    }
+    reemplazarImagen(archivo, 'archivo')
   }
 
-  // ---------- Imagen marcada ----------
-  const imagenMarcada =
-    resultado?.imagen_marcada?.base64 && resultado?.imagen_marcada?.mime_type
-      ? `data:${resultado.imagen_marcada.mime_type};base64,${resultado.imagen_marcada.base64}`
-      : null
+  const manejarDetectarPlaca = () => {
+    if (!imagen) return
+    detectarPlaca(imagen.blob)
+  }
 
-  // ---------- Render de resultados ----------
-  const renderResultado = () => {
-    if (!resultado) return null
-    const { estado, vehiculo, placa, confianza } = resultado
-
-    if (estado === 'encontrado' && resultado.vehiculo_encontrado && vehiculo) {
-      const prop = vehiculo.propietario || vehiculo.propietarios || {}
-      return (
-        <>
-          <CAlert color="success">
-            <strong>Vehículo autorizado.</strong> Placa {placa} reconocida con confianza{' '}
-            {confianza}%.
-          </CAlert>
-
-          {imagenMarcada && (
-            <img
-              src={imagenMarcada}
-              alt="Vehículo con placa detectada"
-              className="img-fluid mb-3 rounded"
-            />
-          )}
-
-          <h6 className="mt-3">Datos del vehículo</h6>
-          <CTable bordered small responsive>
-            <CTableBody>
-              <CTableRow><CTableDataCell>Placa</CTableDataCell><CTableDataCell>{placa}</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Confianza</CTableDataCell><CTableDataCell>{confianza} %</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Marca</CTableDataCell><CTableDataCell>{vehiculo.marca}</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Modelo</CTableDataCell><CTableDataCell>{vehiculo.modelo}</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Año</CTableDataCell><CTableDataCell>{vehiculo.anio || vehiculo.año}</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Color</CTableDataCell><CTableDataCell>{vehiculo.color}</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Tipo</CTableDataCell><CTableDataCell>{vehiculo.tipo}</CTableDataCell></CTableRow>
-            </CTableBody>
-          </CTable>
-
-          {vehiculo.fotografia_url && (
-            <img src={vehiculo.fotografia_url} alt="Vehículo" className="img-fluid rounded mb-3" />
-          )}
-
-          <h6 className="mt-3">Propietario</h6>
-          <CTable bordered small responsive>
-            <CTableBody>
-              <CTableRow><CTableDataCell>Nombre</CTableDataCell><CTableDataCell>{prop.nombre || prop.nombres}</CTableDataCell></CTableRow>
-              <CTableRow><CTableDataCell>Cédula</CTableDataCell><CTableDataCell>{prop.cedula}</CTableDataCell></CTableRow>
-              <CTableRow>
-                <CTableDataCell>Autorización</CTableDataCell>
-                <CTableDataCell><CBadge color="success">Autorizado</CBadge></CTableDataCell>
-              </CTableRow>
-            </CTableBody>
-          </CTable>
-
-          {prop.fotografia_url && (
-            <img src={prop.fotografia_url} alt="Propietario" className="img-fluid rounded" />
-          )}
-        </>
-      )
-    }
-
-    if (estado === 'no_registrado') {
-      return (
-        <>
-          <CAlert color="danger">
-            <h4 className="alert-heading">VEHÍCULO NO REGISTRADO</h4>
-            <p className="mb-1">Placa detectada: <strong>{placa}</strong></p>
-            <p className="mb-1">Confianza: <strong>{confianza}%</strong></p>
-            <hr />
-            <p className="mb-0">No se autoriza el ingreso. El vehículo no existe en Supabase.</p>
-          </CAlert>
-          {imagenMarcada && (
-            <img src={imagenMarcada} alt="Placa detectada" className="img-fluid rounded mb-3" />
-          )}
-          <CButton color="primary" onClick={reiniciar}>Procesar otra imagen</CButton>
-        </>
-      )
-    }
-
-    if (estado === 'sin_placa') {
-      return <CAlert color="warning">No se detectó ninguna placa en la imagen.</CAlert>
-    }
-    if (estado === 'baja_confianza') {
-      return <CAlert color="warning">Confianza muy baja. Vuelve a capturar la imagen.</CAlert>
-    }
-    if (estado === 'multiples_placas') {
-      return <CAlert color="warning">Se detectaron varias placas. Acerca la cámara a una sola.</CAlert>
-    }
-
-    return <CAlert color="secondary">Estado recibido: {estado}</CAlert>
+  const manejarProcesarOtraImagen = () => {
+    if (imagen?.previewUrl) URL.revokeObjectURL(imagen.previewUrl)
+    setImagen(null)
+    setErrorImagen('')
+    limpiarResultado()
   }
 
   return (
-    <CRow>
-      {/* IZQUIERDA: captura */}
-      <CCol lg={6} className="mb-3">
-        <CCard>
-          <CCardHeader><strong>Captura del vehículo</strong></CCardHeader>
+    <CRow className="align-items-stretch">
+      <CCol md={6} className="mb-4">
+        <CCard className="h-100">
+          <CCardHeader>
+            <strong>Monitoreo de entrada</strong>
+            <div className="small text-body-secondary">Captura del vehículo</div>
+          </CCardHeader>
           <CCardBody>
-            <div className="bg-dark rounded mb-2 d-flex justify-content-center align-items-center" style={{ minHeight: 260 }}>
+            {errorCamara && <CAlert color="danger">{errorCamara}</CAlert>}
+
+            <div
+              className="bg-dark rounded mb-3 d-flex align-items-center justify-content-center overflow-hidden"
+              style={{ aspectRatio: '16 / 9' }}
+            >
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                style={{ width: '100%', maxHeight: 360, display: streaming ? 'block' : 'none' }}
+                className="w-100 h-100"
+                style={{ objectFit: 'cover', display: camaraActiva ? 'block' : 'none' }}
               />
-              {!streaming && !previewUrl && (
-                <span className="text-white-50">Cámara apagada</span>
-              )}
-            </div>
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-            <div className="d-flex flex-wrap gap-2 mb-3">
-              {!streaming ? (
-                <CButton color="primary" onClick={startCamera}>Activar cámara</CButton>
-              ) : (
-                <>
-                  <CButton color="danger" onClick={stopCamera}>Detener cámara</CButton>
-                  <CButton color="success" onClick={capturar}>Capturar foto</CButton>
-                </>
+              {!camaraActiva && (
+                <div className="text-white-50 text-center">
+                  <CIcon icon={cilCamera} size="xxl" />
+                  <div className="small mt-2">Cámara desactivada</div>
+                </div>
               )}
             </div>
 
-            <label className="form-label">O selecciona una imagen (JPG / PNG):</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png"
-              className="form-control mb-3"
-              onChange={onFileChange}
-            />
-
-            {previewUrl && (
-              <>
-                <p className="mb-1"><strong>Vista previa:</strong></p>
-                <img src={previewUrl} alt="Vista previa" className="img-fluid rounded mb-3" />
-              </>
+            {dispositivos.length > 1 && (
+              <CFormSelect
+                className="mb-3"
+                value={dispositivoSeleccionado}
+                onChange={(evento) => seleccionarDispositivo(evento.target.value)}
+                aria-label="Seleccionar cámara"
+              >
+                <option value="">Cámara por defecto (posterior en móviles)</option>
+                {dispositivos.map((dispositivo) => (
+                  <option key={dispositivo.deviceId} value={dispositivo.deviceId}>
+                    {dispositivo.label}
+                  </option>
+                ))}
+              </CFormSelect>
             )}
 
-            <CButton
-              color="dark"
-              className="w-100"
-              disabled={!blob || loading}
-              onClick={detectarPlaca}
-            >
-              {loading ? (<><CSpinner size="sm" className="me-2" />Procesando…</>) : 'Detectar placa'}
-            </CButton>
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              {!camaraActiva ? (
+                <CButton color="success" onClick={() => activarCamara()}>
+                  <CIcon icon={cilCamera} className="me-1" />
+                  Activar cámara
+                </CButton>
+              ) : (
+                <CButton color="secondary" variant="outline" onClick={detenerCamara}>
+                  Detener cámara
+                </CButton>
+              )}
 
-            {error && <CAlert color="danger" className="mt-3 mb-0">{error}</CAlert>}
+              <CButton color="primary" onClick={manejarCapturarFoto} disabled={!camaraActiva}>
+                <CIcon icon={cilImage} className="me-1" />
+                Capturar foto
+              </CButton>
+
+              <CButton
+                color="secondary"
+                variant="outline"
+                onClick={() => inputArchivoRef.current?.click()}
+              >
+                <CIcon icon={cilCloudUpload} className="me-1" />
+                Subir imagen
+              </CButton>
+              <input
+                ref={inputArchivoRef}
+                type="file"
+                accept="image/jpeg,image/png"
+                hidden
+                onChange={manejarSeleccionArchivo}
+              />
+            </div>
+
+            {errorImagen && <CAlert color="danger">{errorImagen}</CAlert>}
+
+            {imagen && (
+              <div className="mb-3">
+                <div className="small text-body-secondary mb-1">
+                  Vista previa (
+                  {imagen.origen === 'camara'
+                    ? 'capturada con la cámara'
+                    : 'seleccionada del dispositivo'}
+                  )
+                </div>
+                <img
+                  src={imagen.previewUrl}
+                  alt="Vista previa del vehículo"
+                  className="img-fluid rounded border"
+                  style={{ maxHeight: '220px', objectFit: 'contain' }}
+                />
+              </div>
+            )}
+
+            <div className="d-flex flex-wrap gap-2">
+              <CButton
+                color="success"
+                onClick={manejarDetectarPlaca}
+                disabled={!imagen || procesando}
+              >
+                {procesando ? (
+                  <>
+                    <CSpinner size="sm" className="me-2" />
+                    Procesando...
+                  </>
+                ) : (
+                  'Detectar placa'
+                )}
+              </CButton>
+
+              {imagen && (
+                <CButton
+                  color="secondary"
+                  variant="outline"
+                  onClick={manejarProcesarOtraImagen}
+                  disabled={procesando}
+                >
+                  <CIcon icon={cilReload} className="me-1" />
+                  Limpiar
+                </CButton>
+              )}
+            </div>
+
+            <div className="small text-body-secondary mt-3">
+              Formatos admitidos: JPG, PNG. Tamaño máximo: 4 MiB.
+            </div>
           </CCardBody>
         </CCard>
       </CCol>
 
-      {/* DERECHA: resultados */}
-      <CCol lg={6} className="mb-3">
-        <CCard>
-          <CCardHeader><strong>Resultados</strong></CCardHeader>
+      <CCol md={6} className="mb-4">
+        <CCard className="h-100">
+          <CCardHeader>
+            <strong>Resultado del reconocimiento</strong>
+          </CCardHeader>
           <CCardBody>
-            {!resultado && !loading && (
-              <p className="text-body-secondary mb-0">
-                Aún no se ha procesado ninguna imagen.
-              </p>
-            )}
-            {loading && (
-              <div className="text-center py-4">
-                <CSpinner color="primary" />
-                <p className="mt-2 mb-0">Reconociendo placa…</p>
+            {!resultado && !error && !procesando && (
+              <div className="text-center text-body-secondary py-5">
+                <CIcon icon={cilCarAlt} size="xxl" className="mb-2" />
+                <p className="mb-0">
+                  Capture o seleccione una imagen y presione &quot;Detectar placa&quot; para ver el
+                  resultado.
+                </p>
               </div>
             )}
-            {renderResultado()}
+
+            {procesando && (
+              <div className="text-center py-5">
+                <CSpinner color="success" />
+                <p className="mt-3">Analizando la imagen...</p>
+              </div>
+            )}
+
+            {error && !procesando && (
+              <CAlert color="danger">
+                <div className="fw-semibold mb-1 d-flex align-items-center gap-2">
+                  <CIcon icon={cilXCircle} />
+                  No se pudo completar el reconocimiento
+                </div>
+                <div>{error.mensaje}</div>
+                {imagen && (
+                  <CButton
+                    color="danger"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={manejarDetectarPlaca}
+                  >
+                    <CIcon icon={cilReload} className="me-1" />
+                    Reintentar
+                  </CButton>
+                )}
+              </CAlert>
+            )}
+
+            {resultado && !procesando && (
+              <ResultadoOcr resultado={resultado} onProcesarOtra={manejarProcesarOtraImagen} />
+            )}
           </CCardBody>
         </CCard>
       </CCol>

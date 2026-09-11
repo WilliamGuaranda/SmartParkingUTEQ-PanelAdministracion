@@ -3,42 +3,38 @@ import { supabase } from '../lib/supabase'
 
 const COLUMNAS_PUBLICAS = `
   id,
-  placa,
-  marca,
-  modelo,
-  anio,
-  color,
-  tipo,
-  foto_url,
-  foto_fuente_url,
-  foto_propietario_url,
-  cedula_enmascarada,
-  propietario_nombre,
-  correo_institucional,
-  autorizado
+  codigo,
+  columna,
+  numero,
+  sensor_id_rtdb,
+  ruta_firebase,
+  estado,
+  distancia_cm,
+  ultima_actualizacion,
+  created_at
 `
 
-export const useVehiculos = () => {
-  const [vehiculos, setVehiculos] = useState([])
+export const usePuestos = () => {
+  const [puestos, setPuestos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState(null)
 
-  const cargarVehiculos = useCallback(async () => {
+  const cargarPuestos = useCallback(async () => {
     setCargando(true)
     setError('')
 
     const { data, error: errorSupabase } = await supabase
-      .from('vehiculos')
+      .from('puestos')
       .select(COLUMNAS_PUBLICAS)
-      .order('propietario_nombre', { ascending: true })
+      .order('numero', { ascending: true })
 
     if (errorSupabase) {
-      setVehiculos([])
+      setPuestos([])
       setError(errorSupabase.message)
     } else {
-      setVehiculos(data ?? [])
+      setPuestos(data ?? [])
     }
 
     setCargando(false)
@@ -46,62 +42,62 @@ export const useVehiculos = () => {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    cargarVehiculos()
-  }, [cargarVehiculos])
+    cargarPuestos()
+  }, [cargarPuestos])
 
-  const crearVehiculo = useCallback(
+  const crearPuesto = useCallback(
     async (datos) => {
       setGuardando(true)
-      const { error: errorSupabase } = await supabase.from('vehiculos').insert([datos])
+      const { error: errorSupabase } = await supabase.from('puestos').insert([datos])
       setGuardando(false)
 
       if (errorSupabase) return { exito: false, mensaje: errorSupabase.message }
 
-      await cargarVehiculos()
+      await cargarPuestos()
       return { exito: true }
     },
-    [cargarVehiculos],
+    [cargarPuestos],
   )
 
-  const actualizarVehiculo = useCallback(
+  const actualizarPuesto = useCallback(
     async (id, datos) => {
       setGuardando(true)
-      const { error: errorSupabase } = await supabase.from('vehiculos').update(datos).eq('id', id)
+      const { error: errorSupabase } = await supabase.from('puestos').update(datos).eq('id', id)
       setGuardando(false)
 
       if (errorSupabase) return { exito: false, mensaje: errorSupabase.message }
 
-      await cargarVehiculos()
+      await cargarPuestos()
       return { exito: true }
     },
-    [cargarVehiculos],
+    [cargarPuestos],
   )
 
-  const eliminarVehiculo = useCallback(
+  const eliminarPuesto = useCallback(
     async (id) => {
       setEliminandoId(id)
-      const { error: errorSupabase } = await supabase.from('vehiculos').delete().eq('id', id)
+      const { error: errorSupabase } = await supabase.from('puestos').delete().eq('id', id)
       setEliminandoId(null)
 
       if (errorSupabase) return { exito: false, mensaje: errorSupabase.message }
 
-      await cargarVehiculos()
+      await cargarPuestos()
       return { exito: true }
     },
-    [cargarVehiculos],
+    [cargarPuestos],
   )
 
   return {
-    vehiculos,
+    puestos,
     cargando,
     error,
     guardando,
     eliminandoId,
-    recargar: cargarVehiculos,
-    crearVehiculo,
-    actualizarVehiculo,
-    eliminarVehiculo,
+    recargar: cargarPuestos,
+    crearPuesto,
+    actualizarPuesto,
+    eliminarPuesto,
   }
 }
 
-export default useVehiculos
+export default usePuestos

@@ -3,6 +3,7 @@ import {
   CAlert,
   CBadge,
   CButton,
+  CButtonGroup,
   CCard,
   CCardBody,
   CCardHeader,
@@ -20,44 +21,53 @@ import {
   CToaster,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilPencil, cilPlus, cilTrash } from '@coreui/icons'
+import { cilGrid, cilList, cilPencil, cilPlus, cilTrash } from '@coreui/icons'
 
-import { useVehiculos } from '../../hooks/useVehiculos'
-import VehiculoFormModal from './VehiculoFormModal'
-import ConfirmarEliminarModal from './ConfirmarEliminarModal'
+import { usePuestos } from '../../hooks/usePuestos'
+import PuestoFormModal from './PuestoFormModal'
+import ConfirmarEliminarPuestoModal from './ConfirmarEliminarPuestoModal'
+import PuestosGrid from './PuestosGrid'
 
-const VEHICULOS_POR_PAGINA = 10
+const PUESTOS_POR_PAGINA = 10
 
-const ListaVehiculos = () => {
+const colorEstado = (estado) => {
+  const valor = (estado || '').toUpperCase()
+  if (valor === 'DISPONIBLE') return 'success'
+  if (valor === 'OCUPADO') return 'danger'
+  return 'warning'
+}
+
+const formatearFecha = (valor) => (valor ? new Date(valor).toLocaleString() : '—')
+
+const ListaPuestos = () => {
   const {
-    vehiculos,
+    puestos,
     cargando,
     error,
     guardando,
     eliminandoId,
     recargar,
-    crearVehiculo,
-    actualizarVehiculo,
-    eliminarVehiculo,
-  } = useVehiculos()
+    crearPuesto,
+    actualizarPuesto,
+    eliminarPuesto,
+  } = usePuestos()
+
+  const [vista, setVista] = useState('cuadricula') // 'cuadricula' | 'tabla'
 
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
   const [busquedaAnterior, setBusquedaAnterior] = useState('')
 
-  // Reinicia la paginación cuando cambia el texto de búsqueda. Se ajusta
-  // durante el renderizado (patrón recomendado por React) en lugar de un
-  // useEffect, para evitar una renderización en cascada innecesaria.
   if (busqueda !== busquedaAnterior) {
     setBusquedaAnterior(busqueda)
     setPagina(1)
   }
 
   const [modalFormularioVisible, setModalFormularioVisible] = useState(false)
-  const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState(null)
+  const [puestoSeleccionado, setPuestoSeleccionado] = useState(null)
 
   const [modalEliminarVisible, setModalEliminarVisible] = useState(false)
-  const [vehiculoAEliminar, setVehiculoAEliminar] = useState(null)
+  const [puestoAEliminar, setPuestoAEliminar] = useState(null)
   const [errorEliminar, setErrorEliminar] = useState('')
 
   const [toast, setToast] = useState(0)
@@ -73,55 +83,50 @@ const ListaVehiculos = () => {
     )
   }
 
-  const vehiculosFiltrados = useMemo(() => {
+  const puestosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
-    if (!texto) return vehiculos
+    if (!texto) return puestos
 
-    return vehiculos.filter((vehiculo) =>
-      [
-        vehiculo.placa,
-        vehiculo.marca,
-        vehiculo.modelo,
-        vehiculo.color,
-        vehiculo.propietario_nombre,
-        vehiculo.correo_institucional,
-      ].some((valor) => valor?.toLowerCase().includes(texto)),
+    return puestos.filter((puesto) =>
+      [puesto.codigo, puesto.columna, puesto.estado, puesto.sensor_id_rtdb].some((valor) =>
+        valor?.toString().toLowerCase().includes(texto),
+      ),
     )
-  }, [vehiculos, busqueda])
+  }, [puestos, busqueda])
 
-  const totalPaginas = Math.max(1, Math.ceil(vehiculosFiltrados.length / VEHICULOS_POR_PAGINA))
+  const totalPaginas = Math.max(1, Math.ceil(puestosFiltrados.length / PUESTOS_POR_PAGINA))
   const paginaActual = Math.min(pagina, totalPaginas)
 
-  const vehiculosPaginados = useMemo(() => {
-    const inicio = (paginaActual - 1) * VEHICULOS_POR_PAGINA
-    return vehiculosFiltrados.slice(inicio, inicio + VEHICULOS_POR_PAGINA)
-  }, [vehiculosFiltrados, paginaActual])
+  const puestosPaginados = useMemo(() => {
+    const inicio = (paginaActual - 1) * PUESTOS_POR_PAGINA
+    return puestosFiltrados.slice(inicio, inicio + PUESTOS_POR_PAGINA)
+  }, [puestosFiltrados, paginaActual])
 
   const abrirModalAgregar = () => {
-    setVehiculoSeleccionado(null)
+    setPuestoSeleccionado(null)
     setModalFormularioVisible(true)
   }
 
-  const abrirModalEditar = (vehiculo) => {
-    setVehiculoSeleccionado(vehiculo)
+  const abrirModalEditar = (puesto) => {
+    setPuestoSeleccionado(puesto)
     setModalFormularioVisible(true)
   }
 
   const cerrarModalFormulario = () => {
     setModalFormularioVisible(false)
-    setVehiculoSeleccionado(null)
+    setPuestoSeleccionado(null)
   }
 
   const manejarGuardar = async (idODatos, datosSiEsEdicion) => {
     const esEdicion = Boolean(datosSiEsEdicion)
     const resultado = esEdicion
-      ? await actualizarVehiculo(idODatos, datosSiEsEdicion)
-      : await crearVehiculo(idODatos)
+      ? await actualizarPuesto(idODatos, datosSiEsEdicion)
+      : await crearPuesto(idODatos)
 
     if (resultado.exito) {
       mostrarToast(
         'success',
-        esEdicion ? 'Vehículo actualizado correctamente.' : 'Vehículo registrado correctamente.',
+        esEdicion ? 'Puesto actualizado correctamente.' : 'Puesto registrado correctamente.',
       )
       cerrarModalFormulario()
     }
@@ -129,27 +134,27 @@ const ListaVehiculos = () => {
     return resultado
   }
 
-  const abrirModalEliminar = (vehiculo) => {
-    setVehiculoAEliminar(vehiculo)
+  const abrirModalEliminar = (puesto) => {
+    setPuestoAEliminar(puesto)
     setErrorEliminar('')
     setModalEliminarVisible(true)
   }
 
   const cerrarModalEliminar = () => {
     setModalEliminarVisible(false)
-    setVehiculoAEliminar(null)
+    setPuestoAEliminar(null)
     setErrorEliminar('')
   }
 
   const confirmarEliminacion = async () => {
-    if (!vehiculoAEliminar) return
-    const resultado = await eliminarVehiculo(vehiculoAEliminar.id)
+    if (!puestoAEliminar) return
+    const resultado = await eliminarPuesto(puestoAEliminar.id)
 
     if (resultado.exito) {
-      mostrarToast('success', 'Vehículo eliminado correctamente.')
+      mostrarToast('success', 'Puesto eliminado correctamente.')
       cerrarModalEliminar()
     } else {
-      setErrorEliminar(resultado.mensaje || 'No se pudo eliminar el vehículo.')
+      setErrorEliminar(resultado.mensaje || 'No se pudo eliminar el puesto.')
     }
   }
 
@@ -158,17 +163,38 @@ const ListaVehiculos = () => {
       <CCard className="mb-4">
         <CCardHeader className="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div>
-            <strong>Vehículos y propietarios</strong>
+            <strong>Puestos</strong>
             <div className="small text-body-secondary">Administración de UTEQ Smart Parking</div>
           </div>
 
           <div className="d-flex gap-2">
+            <CButtonGroup>
+              <CButton
+                color="secondary"
+                variant={vista === 'cuadricula' ? undefined : 'outline'}
+                onClick={() => setVista('cuadricula')}
+                title="Vista de cuadrícula"
+              >
+                <CIcon icon={cilGrid} className="me-1" />
+                Cuadrícula
+              </CButton>
+              <CButton
+                color="secondary"
+                variant={vista === 'tabla' ? undefined : 'outline'}
+                onClick={() => setVista('tabla')}
+                title="Vista de tabla"
+              >
+                <CIcon icon={cilList} className="me-1" />
+                Tabla
+              </CButton>
+            </CButtonGroup>
+
             <CButton color="secondary" variant="outline" onClick={recargar} disabled={cargando}>
               Actualizar
             </CButton>
             <CButton color="success" onClick={abrirModalAgregar} disabled={cargando}>
               <CIcon icon={cilPlus} className="me-1" />
-              Agregar vehículo
+              Agregar puesto
             </CButton>
           </div>
         </CCardHeader>
@@ -177,124 +203,81 @@ const ListaVehiculos = () => {
           <div className="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap">
             <CFormInput
               type="search"
-              placeholder="Buscar placa, vehículo o propietario..."
+              placeholder="Buscar código, columna, sensor o estado..."
               value={busqueda}
               onChange={(evento) => setBusqueda(evento.target.value)}
               style={{ maxWidth: '420px' }}
             />
 
-            <span className="text-body-secondary">{vehiculosFiltrados.length} vehículos</span>
+            <span className="text-body-secondary">{puestosFiltrados.length} puestos</span>
           </div>
 
           {cargando && (
             <div className="text-center py-5">
               <CSpinner color="success" />
-              <p className="mt-3">Cargando vehículos...</p>
+              <p className="mt-3">Cargando puestos...</p>
             </div>
           )}
 
           {!cargando && error && (
-            <CAlert color="danger">No se pudieron cargar los vehículos: {error}</CAlert>
+            <CAlert color="danger">No se pudieron cargar los puestos: {error}</CAlert>
           )}
 
-          {!cargando && !error && (
+          {!cargando && !error && vista === 'cuadricula' && (
+            <PuestosGrid puestos={puestosFiltrados} onSeleccionar={abrirModalEditar} />
+          )}
+
+          {!cargando && !error && vista === 'tabla' && (
             <>
               <CTable align="middle" bordered hover responsive striped>
                 <CTableHead color="dark">
                   <CTableRow>
-                    <CTableHeaderCell>Foto del vehículo</CTableHeaderCell>
-                    <CTableHeaderCell>Placa</CTableHeaderCell>
-                    <CTableHeaderCell>Vehículo</CTableHeaderCell>
-                    <CTableHeaderCell>Año / color</CTableHeaderCell>
-                    <CTableHeaderCell>Foto del propietario</CTableHeaderCell>
-                    <CTableHeaderCell>Propietario</CTableHeaderCell>
-                    <CTableHeaderCell>Cédula</CTableHeaderCell>
-                    <CTableHeaderCell>Correo</CTableHeaderCell>
+                    <CTableHeaderCell>Código</CTableHeaderCell>
+                    <CTableHeaderCell>Columna</CTableHeaderCell>
+                    <CTableHeaderCell>Número</CTableHeaderCell>
+                    <CTableHeaderCell>Sensor</CTableHeaderCell>
+                    <CTableHeaderCell>Distancia</CTableHeaderCell>
+                    <CTableHeaderCell>Última lectura</CTableHeaderCell>
                     <CTableHeaderCell>Estado</CTableHeaderCell>
                     <CTableHeaderCell>Acciones</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
 
                 <CTableBody>
-                  {vehiculosPaginados.length === 0 ? (
+                  {puestosPaginados.length === 0 ? (
                     <CTableRow>
-                      <CTableDataCell colSpan={10} className="text-center py-4">
-                        No se encontraron vehículos.
+                      <CTableDataCell colSpan={8} className="text-center py-4">
+                        No se encontraron puestos.
                       </CTableDataCell>
                     </CTableRow>
                   ) : (
-                    vehiculosPaginados.map((vehiculo) => (
-                      <CTableRow key={vehiculo.id}>
-                        <CTableDataCell>
-                          {vehiculo.foto_url ? (
-                            <a
-                              href={vehiculo.foto_fuente_url || vehiculo.foto_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Abrir fuente de la imagen"
-                            >
-                              <img
-                                src={vehiculo.foto_url}
-                                alt={`${vehiculo.marca} ${vehiculo.modelo}`}
-                                width="100"
-                                height="65"
-                                style={{ objectFit: 'cover', borderRadius: '8px' }}
-                              />
-                            </a>
-                          ) : (
-                            <span className="text-body-secondary small">Sin foto</span>
-                          )}
-                        </CTableDataCell>
-
+                    puestosPaginados.map((puesto) => (
+                      <CTableRow key={puesto.id}>
                         <CTableDataCell>
                           <CBadge color="dark" className="fs-6">
-                            {vehiculo.placa}
+                            {puesto.codigo}
                           </CBadge>
                         </CTableDataCell>
 
-                        <CTableDataCell>
-                          <strong>{vehiculo.marca}</strong>
-                          <div className="small text-body-secondary">{vehiculo.modelo}</div>
+                        <CTableDataCell>{puesto.columna}</CTableDataCell>
+
+                        <CTableDataCell>{puesto.numero}</CTableDataCell>
+
+                        <CTableDataCell className="small">
+                          {puesto.sensor_id_rtdb || '—'}
                         </CTableDataCell>
 
                         <CTableDataCell>
-                          {vehiculo.anio}
-                          <div className="small text-body-secondary">{vehiculo.color}</div>
+                          {puesto.distancia_cm != null ? `${puesto.distancia_cm} cm` : '—'}
                         </CTableDataCell>
 
-                        <CTableDataCell className="text-center">
-                          {vehiculo.foto_propietario_url ? (
-                            <img
-                              src={vehiculo.foto_propietario_url}
-                              alt={`Fotografía de ${vehiculo.propietario_nombre}`}
-                              width="60"
-                              height="60"
-                              loading="lazy"
-                              referrerPolicy="no-referrer"
-                              style={{
-                                objectFit: 'cover',
-                                borderRadius: '50%',
-                                border: '2px solid var(--cui-border-color)',
-                              }}
-                            />
-                          ) : (
-                            <span className="text-body-secondary small">Sin foto</span>
-                          )}
-                        </CTableDataCell>
-
-                        <CTableDataCell>{vehiculo.propietario_nombre}</CTableDataCell>
-
-                        <CTableDataCell>{vehiculo.cedula_enmascarada}</CTableDataCell>
-
-                        <CTableDataCell>
-                          <a href={`mailto:${vehiculo.correo_institucional}`}>
-                            {vehiculo.correo_institucional}
-                          </a>
+                        <CTableDataCell className="small">
+                          {formatearFecha(puesto.ultima_actualizacion)}
                         </CTableDataCell>
 
                         <CTableDataCell>
-                          <CBadge color={vehiculo.autorizado ? 'success' : 'danger'}>
-                            {vehiculo.autorizado ? 'Autorizado' : 'No autorizado'}
+                          <CBadge color={colorEstado(puesto.estado)} className="text-capitalize">
+                            {puesto.estado?.toLowerCase()}
                           </CBadge>
                         </CTableDataCell>
 
@@ -304,7 +287,7 @@ const ListaVehiculos = () => {
                               color="info"
                               variant="outline"
                               size="sm"
-                              onClick={() => abrirModalEditar(vehiculo)}
+                              onClick={() => abrirModalEditar(puesto)}
                               title="Editar"
                             >
                               <CIcon icon={cilPencil} />
@@ -313,11 +296,11 @@ const ListaVehiculos = () => {
                               color="danger"
                               variant="outline"
                               size="sm"
-                              onClick={() => abrirModalEliminar(vehiculo)}
-                              disabled={eliminandoId === vehiculo.id}
+                              onClick={() => abrirModalEliminar(puesto)}
+                              disabled={eliminandoId === puesto.id}
                               title="Eliminar"
                             >
-                              {eliminandoId === vehiculo.id ? (
+                              {eliminandoId === puesto.id ? (
                                 <CSpinner size="sm" />
                               ) : (
                                 <CIcon icon={cilTrash} />
@@ -361,17 +344,17 @@ const ListaVehiculos = () => {
         </CCardBody>
       </CCard>
 
-      <VehiculoFormModal
+      <PuestoFormModal
         visible={modalFormularioVisible}
-        vehiculo={vehiculoSeleccionado}
+        puesto={puestoSeleccionado}
         guardando={guardando}
         onClose={cerrarModalFormulario}
         onGuardar={manejarGuardar}
       />
 
-      <ConfirmarEliminarModal
+      <ConfirmarEliminarPuestoModal
         visible={modalEliminarVisible}
-        vehiculo={vehiculoAEliminar}
+        puesto={puestoAEliminar}
         eliminando={eliminandoId !== null}
         error={errorEliminar}
         onCancelar={cerrarModalEliminar}
@@ -383,4 +366,4 @@ const ListaVehiculos = () => {
   )
 }
 
-export default ListaVehiculos
+export default ListaPuestos
