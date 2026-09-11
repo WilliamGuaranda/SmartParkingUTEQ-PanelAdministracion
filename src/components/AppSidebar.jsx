@@ -1,24 +1,3 @@
-/**
- * AppSidebar Component
- *
- * Collapsible navigation sidebar with branding, menu items, and toggle controls.
- *
- * Features:
- * - Redux-controlled visibility state
- * - Unfoldable/narrow mode for more screen space
- * - Brand logo with full and narrow variants
- * - Close button for mobile devices
- * - Footer with toggle button
- * - Dark color scheme
- * - Fixed positioning
- *
- * @component
- * @example
- * return (
- *   <AppSidebar />
- * )
- */
-
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -26,32 +5,13 @@ import {
   CCloseButton,
   CSidebar,
   CSidebarBrand,
-  CSidebarFooter,
   CSidebarHeader,
-  CSidebarToggler,
 } from '@coreui/react'
-import CIcon from '@coreui/icons-react'
 
 import { AppSidebarNav } from './AppSidebarNav'
-
 import Logo from 'src/assets/brand/logo'
-
-
-// sidebar nav config
 import navigation from '../_nav'
 
-/**
- * AppSidebar functional component
- *
- * Manages sidebar state with Redux:
- * - sidebarShow: Controls sidebar visibility
- * - sidebarUnfoldable: Controls narrow/wide mode
- *
- * Renders navigation from _nav.js configuration file.
- * Memoized to prevent unnecessary re-renders.
- *
- * @returns {React.ReactElement} Sidebar with navigation
- */
 const AppSidebar = () => {
   const dispatch = useDispatch()
   const unfoldable = useSelector((state) => state.sidebarUnfoldable)
@@ -68,22 +28,30 @@ const AppSidebar = () => {
         dispatch({ type: 'set', sidebarShow: visible })
       }}
     >
-      <CSidebarHeader className="border-bottom">
-        <CSidebarBrand to="/">
-          <Logo width={250} height={58}/>
+      <CSidebarHeader className="border-bottom d-flex align-items-center justify-content-between px-3">
+        <CSidebarBrand to="/" className="d-flex align-items-center text-decoration-none">
+          <Logo
+            className="sidebar-brand-full"
+            height={40}
+            width={170}
+            style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
+          />
+          <Logo
+            className="sidebar-brand-narrow"
+            height={32}
+            width={32}
+            style={{ objectFit: 'contain' }}
+          />
         </CSidebarBrand>
+
         <CCloseButton
           className="d-lg-none"
           dark
           onClick={() => dispatch({ type: 'set', sidebarShow: false })}
         />
       </CSidebarHeader>
+
       <AppSidebarNav items={navigation} />
-      <CSidebarFooter className="border-top d-none d-lg-flex">
-        <CSidebarToggler
-          onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
-        />
-      </CSidebarFooter>
     </CSidebar>
   )
 }

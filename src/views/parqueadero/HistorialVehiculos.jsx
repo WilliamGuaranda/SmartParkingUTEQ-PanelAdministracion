@@ -69,8 +69,12 @@ const obtenerCambios = (anteriores, nuevos) => {
     (campo) => String(anteriores[campo]) !== String(nuevos[campo]),
   ).map((campo) => ({
     campo: ETIQUETAS_CAMPOS[campo] || campo,
-    antes: anteriores[campo] === null || anteriores[campo] === undefined ? '—' : String(anteriores[campo]),
-    despues: nuevos[campo] === null || nuevos[campo] === undefined ? '—' : String(nuevos[campo]),
+    antes:
+      anteriores[campo] === null || anteriores[campo] === undefined
+        ? '—'
+        : String(anteriores[campo]),
+    despues:
+      nuevos[campo] === null || nuevos[campo] === undefined ? '—' : String(nuevos[campo]),
   }))
 }
 
@@ -83,7 +87,7 @@ const HistorialVehiculos = () => {
         <div>
           <strong>
             <CIcon icon={cilHistory} className="me-2" />
-            Historial de cambios
+            Historial de cambios — Vehículos
           </strong>
           <div className="small text-body-secondary">
             Registro de creación, edición y eliminación de vehículos
@@ -107,8 +111,8 @@ const HistorialVehiculos = () => {
           <CAlert color="danger">
             No se pudo cargar el historial: {error}
             <div className="small mt-2">
-              Si el error menciona que la tabla <code>vehiculos_historial</code> no existe, falta
-              correr el script <code>sql/supabase_historial_vehiculos.sql</code> en Supabase.
+              Si el error menciona que la tabla <code>vehiculos_historial</code> no existe, corre
+              el script SQL en Supabase.
             </div>
           </CAlert>
         )}
@@ -151,7 +155,7 @@ const HistorialVehiculos = () => {
                       </CTableDataCell>
 
                       <CTableDataCell>
-                        <CBadge color="dark">{datos.placa}</CBadge>
+                        <CBadge color="dark">{datos.placa || '—'}</CBadge>
                       </CTableDataCell>
 
                       <CTableDataCell>
@@ -169,7 +173,9 @@ const HistorialVehiculos = () => {
                         )}
                         {registro.accion === 'UPDATE' &&
                           (cambios.length === 0 ? (
-                            <span className="text-body-secondary small">Sin cambios detectados</span>
+                            <span className="text-body-secondary small">
+                              Sin cambios detectados
+                            </span>
                           ) : (
                             <ul className="small mb-0 ps-3">
                               {cambios.map((cambio) => (

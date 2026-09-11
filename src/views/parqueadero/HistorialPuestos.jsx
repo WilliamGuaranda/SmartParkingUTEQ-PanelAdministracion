@@ -34,10 +34,10 @@ const ETIQUETA_ACCION = {
 const COLOR_ESTADO = {
   DISPONIBLE: 'success',
   OCUPADO: 'danger',
+  MANTENIMIENTO: 'warning',
 }
 
 // Campos que se comparan para mostrar "qué cambió" en un UPDATE.
-// `estado` es el que indica si el puesto está disponible o no.
 const CAMPOS_MONITOREADOS = ['estado', 'codigo', 'columna', 'numero', 'sensor_id_rtdb']
 
 const ETIQUETAS_CAMPOS = {
@@ -61,8 +61,12 @@ const obtenerCambios = (anteriores, nuevos) => {
     (campo) => String(anteriores[campo]) !== String(nuevos[campo]),
   ).map((campo) => ({
     campo: ETIQUETAS_CAMPOS[campo] || campo,
-    antes: anteriores[campo] === null || anteriores[campo] === undefined ? '—' : String(anteriores[campo]),
-    despues: nuevos[campo] === null || nuevos[campo] === undefined ? '—' : String(nuevos[campo]),
+    antes:
+      anteriores[campo] === null || anteriores[campo] === undefined
+        ? '—'
+        : String(anteriores[campo]),
+    despues:
+      nuevos[campo] === null || nuevos[campo] === undefined ? '—' : String(nuevos[campo]),
   }))
 }
 
@@ -84,10 +88,11 @@ const HistorialPuestos = () => {
         <div>
           <strong>
             <CIcon icon={cilHistory} className="me-2" />
-            Historial de puestos
+            Historial de cambios — Puestos
           </strong>
           <div className="small text-body-secondary">
-            Registro de creación, edición (incluye cambios de disponibilidad) y eliminación de puestos
+            Registro de creación, edición (incluye cambios de disponibilidad) y eliminación de
+            puestos
           </div>
         </div>
 
@@ -108,8 +113,8 @@ const HistorialPuestos = () => {
           <CAlert color="danger">
             No se pudo cargar el historial: {error}
             <div className="small mt-2">
-              Si el error menciona que la tabla <code>puestos_historial</code> no existe, falta
-              correr el script <code>sql/supabase_historial_puestos.sql</code> en Supabase.
+              Si el error menciona que la tabla <code>puestos_historial</code> no existe, corre el
+              script SQL en Supabase.
             </div>
           </CAlert>
         )}
@@ -151,7 +156,7 @@ const HistorialPuestos = () => {
                       </CTableDataCell>
 
                       <CTableDataCell>
-                        <CBadge color="dark">{datos.codigo}</CBadge>
+                        <CBadge color="dark">{datos.codigo || '—'}</CBadge>
                       </CTableDataCell>
 
                       <CTableDataCell>
@@ -167,7 +172,9 @@ const HistorialPuestos = () => {
                         )}
                         {registro.accion === 'UPDATE' &&
                           (cambios.length === 0 ? (
-                            <span className="text-body-secondary small">Sin cambios detectados</span>
+                            <span className="text-body-secondary small">
+                              Sin cambios detectados
+                            </span>
                           ) : (
                             <ul className="small mb-0 ps-3">
                               {cambios.map((cambio) => (

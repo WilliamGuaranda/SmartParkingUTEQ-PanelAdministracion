@@ -1,24 +1,24 @@
 import React from 'react'
 import CIcon from '@coreui/icons-react'
-import { cilCamera, cilContact, cilGrid, cilHistory, cilSpeedometer } from '@coreui/icons'
+import { cilCamera, cilTruck, cilGrid, cilHistory, cilHome } from '@coreui/icons'
 import { CNavItem, CNavTitle } from '@coreui/react'
 
 const _nav = [
   {
     component: CNavItem,
-    name: 'Dashboard',
+    name: 'Home',
     to: '/dashboard',
-    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+    icon: <CIcon icon={cilHome} customClassName="nav-icon" />,
   },
   {
     component: CNavTitle,
-    name: 'Parqueadero',
+    name: 'PARQUEADERO',
   },
   {
     component: CNavItem,
-    name: 'Vehículo y propietario',
-    to: '/parqueadero/vehiculo-propietario',
-    icon: <CIcon icon={cilContact} customClassName="nav-icon" />,
+    name: 'Vehículos y propietarios',
+    to: '/parqueadero/vehiculos',
+    icon: <CIcon icon={cilTruck} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
@@ -28,15 +28,15 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Historial',
-    to: '/parqueadero/historial',
-    icon: <CIcon icon={cilHistory} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
     name: 'Monitoreo de entrada',
     to: '/parqueadero/monitoreo-entrada',
     icon: <CIcon icon={cilCamera} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Historial',
+    to: '/parqueadero/historial',
+    icon: <CIcon icon={cilHistory} customClassName="nav-icon" />,
   },
 ]
 

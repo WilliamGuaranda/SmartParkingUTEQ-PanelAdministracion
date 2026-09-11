@@ -3,6 +3,10 @@ import { supabase } from '../lib/supabase'
 
 const LIMITE_REGISTROS = 300
 
+/**
+ * Hook del historial de cambios de VEHÍCULOS (tabla vehiculos_historial).
+ * Se mantiene sincronizado en tiempo real con Supabase Realtime.
+ */
 export const useHistorial = () => {
   const [historial, setHistorial] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -29,8 +33,23 @@ export const useHistorial = () => {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarHistorial()
+  }, [cargarHistorial])
+
+  // Realtime: refresca automáticamente cuando hay cambios
+  useEffect(() => {
+    const canal = supabase
+      .channel('vehiculos-historial-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'vehiculos_historial' },
+        () => cargarHistorial(),
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canal)
+    }
   }, [cargarHistorial])
 
   return { historial, cargando, error, recargar: cargarHistorial }

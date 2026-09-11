@@ -3,6 +3,10 @@ import { supabase } from '../lib/supabase'
 
 const LIMITE_REGISTROS = 300
 
+/**
+ * Hook del historial de cambios de PUESTOS (tabla puestos_historial).
+ * Se mantiene sincronizado en tiempo real con Supabase Realtime.
+ */
 export const usePuestosHistorial = () => {
   const [historial, setHistorial] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -29,8 +33,23 @@ export const usePuestosHistorial = () => {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarHistorial()
+  }, [cargarHistorial])
+
+  // Realtime
+  useEffect(() => {
+    const canal = supabase
+      .channel('puestos-historial-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'puestos_historial' },
+        () => cargarHistorial(),
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canal)
+    }
   }, [cargarHistorial])
 
   return { historial, cargando, error, recargar: cargarHistorial }
