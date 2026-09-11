@@ -172,27 +172,70 @@ src/
 └── scss/
 ```
 
-## Galería de pantallas
+## Galería de pantallas y funcionamiento
 
-Las siguientes capturas corresponden a la funcionalidad principal del sistema y se encuentran en la carpeta `public` del proyecto.
+Las siguientes capturas muestran el flujo visual del sistema desde que se accede al módulo de monitoreo hasta la validación del vehículo. Cada imagen representa una etapa del proceso de control del parqueadero.
 
-<div align="center">
-  <img src="public/1.jpeg" alt="Pantalla 1" width="32%" />
-  <img src="public/2.jpeg" alt="Pantalla 2" width="32%" />
-  <img src="public/3.jpeg" alt="Pantalla 3" width="32%" />
-</div>
+### 1. Nueva opción del menú
 
-<div align="center">
-  <img src="public/4.jpeg" alt="Pantalla 4" width="32%" />
-  <img src="public/5.jpeg" alt="Pantalla 5" width="32%" />
-  <img src="public/6.jpeg" alt="Pantalla 6" width="32%" />
-</div>
+<img src="public/1.jpeg" alt="Nueva opción del menú del panel administrativo" width="100%">
 
-<div align="center">
-  <img src="public/7.jpeg" alt="Pantalla 7" width="32%" />
-  <img src="public/8.jpeg" alt="Pantalla 8" width="32%" />
-  <img src="public/9.jpeg" alt="Pantalla 9" width="32%" />
-</div>
+La interfaz incorpora una nueva opción dentro del menú lateral llamada "Monitoreo de entrada". Esta acción permite acceder rápidamente al módulo que gestiona la captura de imágenes y el reconocimiento de placas. El propósito es centralizar todo el flujo de revisión visual del parqueadero en una ruta específica del panel administrativo.
+
+### 2. Captura de la cámara funcionando
+
+<img src="public/2.jpeg" alt="Vista de la cámara funcionando" width="100%">
+
+Aquí se observa cómo el sistema activa la cámara del dispositivo para obtener una imagen en tiempo real. La vista está lista para tomar una fotografía del vehículo que ingresa al estacionamiento. La aplicación valida el entorno antes de usar la cámara y prepara la imagen para enviarla al proceso de reconocimiento óptico.
+
+### 3. Captura de una imagen seleccionada desde el dispositivo
+
+<img src="public/3.jpeg" alt="Selección de imagen desde el dispositivo" width="100%">
+
+En esta etapa el usuario puede elegir una imagen ya guardada en el equipo, en lugar de usar la cámara. El sistema permite cargar archivos locales y validar que sean imágenes válidas. Una vez seleccionada, se muestra una vista previa para confirmar que la imagen corresponde al vehículo a analizar.
+
+<img src="public/4.jpeg" alt="Vista previa de la imagen seleccionada" width="100%">
+
+La segunda parte de esta captura muestra la imagen ya cargada y lista para ser procesada. En este punto el sistema prepara la información para enviar la foto al servicio OCR, que analizara la placa y extraerá los datos del vehículo a partir de la imagen.
+
+### 4. Captura de un vehículo registrado
+
+<img src="public/5.jpeg" alt="Vehículo registrado detectado por el sistema" width="100%">
+
+Este caso representa un vehículo que sí se encuentra en el sistema de registros autorizados. Cuando la placa es reconocida correctamente, la aplicación compara la información con las bases de datos del proyecto y puede identificar si el vehículo tiene autorización para ingresar o no. Este paso es clave para realizar la validación automática.
+
+### 5. Captura de un vehículo no registrado
+
+<img src="public/6.jpeg" alt="Vehículo no registrado en el sistema" width="100%">
+
+En este flujo el sistema detecta una placa que no coincide con un registro autorizado del parqueadero. Esto permite identificar vehículos no registrados o no autorizados. El módulo sirve como apoyo para revisión manual o para decidir si se debe registrar la entrada, bloquear el ingreso o notificar al administrador.
+
+### 6. Imagen del vehículo con la placa marcada
+
+<img src="public/7.jpeg" alt="Imagen del vehículo con la placa marcada" width="100%">
+
+Una vez que la imagen es analizada, la aplicación marca la zona correspondiente a la placa para visualizar el reconocimiento realizado por el OCR. Esta función ayuda a verificar que la lectura fue correcta y que el sistema ubicó la zona relevante de la imagen antes de extraer la matrícula.
+
+### 7. Datos del vehículo y propietario
+
+<img src="public/8.jpeg" alt="Datos del vehículo y propietario - parte 1" width="100%">
+
+Después del reconocimiento, el sistema consulta la información asociada al vehículo y al propietario. Se muestran datos como la placa, marca, modelo, año, color, tipo de vehículo y el nombre del responsable. En esta parte también se verifica la coincidencia entre la placa detectada y el registro almacenado en Supabase.
+
+<img src="public/9.jpeg" alt="Datos del vehículo y propietario - parte 2" width="100%">
+
+La segunda parte completa la vista con los datos del propietario, información institucional y la relación con el vehículo autorizado. Esto permite que el administrador tenga una vista rápida y clara del estado del automóvil, quien es el titular y si la información corresponde a un registro válido dentro del sistema del parqueadero.
+
+## Funcionamiento general del flujo
+
+1. El usuario accede al módulo de monitoreo desde el menú lateral.
+2. El sistema activa la cámara o permite cargar una imagen desde el dispositivo.
+3. Se valida que la imagen sea correcta y correspondiente a un vehículo.
+4. La imagen es enviada al servicio OCR para reconocer la placa.
+5. El sistema extrae la matrícula y compara la información con la base de datos.
+6. Si existe un vehículo registrado, se muestran sus datos y los del propietario.
+7. Si no existe, la aplicación indica que la placa no está autorizada o no se encuentra registrada.
+8. La interfaz ayuda a la administración a supervisar la entrada de vehículos y verificar el estado del parqueadero.
 
 ## Flujo de trabajo del sistema
 
