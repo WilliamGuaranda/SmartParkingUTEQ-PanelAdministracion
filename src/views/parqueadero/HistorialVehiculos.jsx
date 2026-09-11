@@ -15,23 +15,24 @@ import {
   CTableRow,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilHistory } from '@coreui/icons'
-
+import { cilCheckAlt, cilHistory, cilPencil, cilTrash } from '@coreui/icons'
 import { useHistorial } from '../../hooks/useHistorial'
 
-const COLOR_ACCION = {
-  INSERT: 'success',
-  UPDATE: 'warning',
-  DELETE: 'danger',
+// Mapeo flexible para nombres en español (CREACIÓN, EDICIÓN, ELIMINACIÓN) o inglés (INSERT, UPDATE, DELETE)
+const CONFIG_ACCIONES = {
+  CREACION: { color: 'success', etiqueta: 'Creado', icono: cilCheckAlt },
+  CREACIÓN: { color: 'success', etiqueta: 'Creado', icono: cilCheckAlt },
+  INSERT: { color: 'success', etiqueta: 'Creado', icono: cilCheckAlt },
+
+  EDICION: { color: 'warning', etiqueta: 'Editado', icono: cilPencil },
+  EDICIÓN: { color: 'warning', etiqueta: 'Editado', icono: cilPencil },
+  UPDATE: { color: 'warning', etiqueta: 'Editado', icono: cilPencil },
+
+  ELIMINACION: { color: 'danger', etiqueta: 'Eliminado', icono: cilTrash },
+  ELIMINACIÓN: { color: 'danger', etiqueta: 'Eliminado', icono: cilTrash },
+  DELETE: { color: 'danger', etiqueta: 'Eliminado', icono: cilTrash },
 }
 
-const ETIQUETA_ACCION = {
-  INSERT: 'Creado',
-  UPDATE: 'Editado',
-  DELETE: 'Eliminado',
-}
-
-// Campos que se comparan para mostrar "qué cambió" en un UPDATE.
 const CAMPOS_MONITOREADOS = [
   'placa',
   'marca',
@@ -64,9 +65,8 @@ const formatearFecha = (fechaIso) =>
 
 const obtenerCambios = (anteriores, nuevos) => {
   if (!anteriores || !nuevos) return []
-
   return CAMPOS_MONITOREADOS.filter(
-    (campo) => String(anteriores[campo]) !== String(nuevos[campo]),
+    (campo) => String(anteriores[campo] ?? '') !== String(nuevos[campo] ?? ''),
   ).map((campo) => ({
     campo: ETIQUETAS_CAMPOS[campo] || campo,
     antes:
@@ -74,8 +74,32 @@ const obtenerCambios = (anteriores, nuevos) => {
         ? '—'
         : String(anteriores[campo]),
     despues:
-      nuevos[campo] === null || nuevos[campo] === undefined ? '—' : String(nuevos[campo]),
+      nuevos[campo] === null || nuevos[campo] === undefined
+        ? '—'
+        : String(nuevos[campo]),
   }))
+}
+
+const BadgeAccion = ({ accion }) => {
+  const clave = String(accion || '').trim().toUpperCase()
+  const estilo = CONFIG_ACCIONES[clave] || {
+    color: 'secondary',
+    etiqueta: accion || 'Desconocido',
+    icono: null,
+  }
+
+  const textClass = estilo.color === 'warning' ? 'text-dark' : 'text-white'
+
+  return (
+    <CBadge
+      color={estilo.color}
+      shape="rounded-pill"
+      className={`d-inline-flex align-items-center gap-1 px-3 py-2 fw-semibold ${textClass}`}
+    >
+      {estilo.icono && <CIcon icon={estilo.icono} size="sm" />}
+      {estilo.etiqueta}
+    </CBadge>
+  )
 }
 
 const HistorialVehiculos = () => {
@@ -93,12 +117,10 @@ const HistorialVehiculos = () => {
             Registro de creación, edición y eliminación de vehículos
           </div>
         </div>
-
         <CButton color="secondary" variant="outline" onClick={recargar} disabled={cargando}>
           Actualizar
         </CButton>
       </CCardHeader>
-
       <CCardBody>
         {cargando && (
           <div className="text-center py-5">
@@ -106,17 +128,14 @@ const HistorialVehiculos = () => {
             <p className="mt-3">Cargando historial...</p>
           </div>
         )}
-
         {!cargando && error && (
           <CAlert color="danger">
             No se pudo cargar el historial: {error}
             <div className="small mt-2">
-              Si el error menciona que la tabla <code>vehiculos_historial</code> no existe, corre
-              el script SQL en Supabase.
+              Si el error menciona que la tabla <code>vehiculos_historial</code> no existe, corre el script SQL en Supabase.
             </div>
           </CAlert>
         )}
-
         {!cargando && !error && (
           <CTable align="middle" bordered hover responsive striped>
             <CTableHead color="dark">
@@ -129,7 +148,6 @@ const HistorialVehiculos = () => {
                 <CTableHeaderCell>Detalle del cambio</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
-
             <CTableBody>
               {historial.length === 0 ? (
                 <CTableRow>
@@ -139,39 +157,40 @@ const HistorialVehiculos = () => {
                 </CTableRow>
               ) : (
                 historial.map((registro) => {
+                  const accionUpper = String(registro.accion || '').toUpperCase()
+                  const esCreacion = accionUpper.includes('CREA') || accionUpper === 'INSERT'
+                  const esEliminacion = accionUpper.includes('ELIM') || accionUpper === 'DELETE'
+                  const esEdicion = accionUpper.includes('EDIC') || accionUpper === 'UPDATE'
+
                   const datos = registro.datos_nuevos || registro.datos_anteriores || {}
-                  const cambios = obtenerCambios(registro.datos_anteriores, registro.datos_nuevos)
+                  const cambios = obtenerCambios(
+                    registro.datos_anteriores,
+                    registro.datos_nuevos,
+                  )
 
                   return (
                     <CTableRow key={registro.id}>
-                      <CTableDataCell className="small">
+                      <CTableDataCell className="small text-nowrap">
                         {formatearFecha(registro.modificado_en)}
                       </CTableDataCell>
-
                       <CTableDataCell>
-                        <CBadge color={COLOR_ACCION[registro.accion] || 'secondary'}>
-                          {ETIQUETA_ACCION[registro.accion] || registro.accion}
-                        </CBadge>
+                        <BadgeAccion accion={registro.accion} />
                       </CTableDataCell>
-
                       <CTableDataCell>
                         <CBadge color="dark">{datos.placa || '—'}</CBadge>
                       </CTableDataCell>
-
                       <CTableDataCell>
                         {datos.marca} {datos.modelo}
                       </CTableDataCell>
-
                       <CTableDataCell>{datos.propietario_nombre}</CTableDataCell>
-
                       <CTableDataCell>
-                        {registro.accion === 'INSERT' && (
+                        {esCreacion && (
                           <span className="text-body-secondary small">Registro creado</span>
                         )}
-                        {registro.accion === 'DELETE' && (
+                        {esEliminacion && (
                           <span className="text-body-secondary small">Registro eliminado</span>
                         )}
-                        {registro.accion === 'UPDATE' &&
+                        {esEdicion &&
                           (cambios.length === 0 ? (
                             <span className="text-body-secondary small">
                               Sin cambios detectados
@@ -180,7 +199,8 @@ const HistorialVehiculos = () => {
                             <ul className="small mb-0 ps-3">
                               {cambios.map((cambio) => (
                                 <li key={cambio.campo}>
-                                  <strong>{cambio.campo}:</strong> {cambio.antes} → {cambio.despues}
+                                  <strong>{cambio.campo}:</strong> {cambio.antes} →{' '}
+                                  {cambio.despues}
                                 </li>
                               ))}
                             </ul>

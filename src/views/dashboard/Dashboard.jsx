@@ -1,97 +1,198 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { CButton, CCard, CCardBody, CCol, CContainer, CRow } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilCarAlt, cilShieldAlt, cilSpeedometer, cilArrowRight } from '@coreui/icons'
+import { cilArrowRight, cilCarAlt, cilGrid, cilHistory } from '@coreui/icons'
 import { Link } from 'react-router-dom'
+
+const modulos = [
+  {
+    titulo: 'Padrón de Vehículos',
+    categoria: 'REGISTRO Y PROPIETARIOS',
+    descripcion:
+      'Control de placas autorizadas, datos institucionales de conductores y emisión de permisos de acceso.',
+    icono: cilCarAlt,
+    ruta: '/parqueadero/vehiculos',
+    tag: 'Vehículos',
+    colorHex: '#10b981',
+  },
+  {
+    titulo: 'Bahías y Puestos',
+    categoria: 'INFRAESTRUCTURA FÍSICA',
+    descripcion:
+      'Distribución espacial por columnas y bloques, disponibilidad de plazas y vinculación de sensores.',
+    icono: cilGrid,
+    ruta: '/parqueadero/puestos',
+    tag: 'Estacionamiento',
+    colorHex: '#0284c7',
+  },
+  {
+    titulo: 'Log de Auditoría',
+    categoria: 'SEGURIDAD Y CONTROL',
+    descripcion:
+      'Trazabilidad completa de movimientos: historial de creaciones, modificaciones y eliminaciones registradas.',
+    icono: cilHistory,
+    ruta: '/parqueadero/historial',
+    tag: 'Trazabilidad',
+    colorHex: '#8b5cf6',
+  },
+]
+
+const TarjetaModulo = ({ mod }) => {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <CCol lg={4} md={6}>
+      <CCard
+        className="h-100 position-relative overflow-hidden"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          borderRadius: '16px',
+          backgroundColor: 'var(--cui-card-bg, #ffffff)',
+          borderColor: hovered ? mod.colorHex : 'var(--cui-border-color, rgba(0, 0, 0, 0.12))',
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          boxShadow: hovered
+            ? `0 12px 24px -6px ${mod.colorHex}30`
+            : '0 2px 8px rgba(0, 0, 0, 0.04)',
+          transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+          transition: 'all 0.25s ease',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: `linear-gradient(90deg, transparent, ${mod.colorHex}, transparent)`,
+            opacity: hovered ? 1 : 0.6,
+          }}
+        />
+
+        <CCardBody className="p-4 d-flex flex-column justify-content-between">
+          <div>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div
+                className="d-flex align-items-center justify-content-center"
+                style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '12px',
+                  backgroundColor: `${mod.colorHex}18`,
+                  color: mod.colorHex,
+                  transform: hovered ? 'scale(1.05)' : 'scale(1)',
+                  transition: 'transform 0.2s ease',
+                }}
+              >
+                <CIcon icon={mod.icono} size="xl" />
+              </div>
+
+              <span
+                className="px-2.5 py-1 rounded-pill fw-semibold"
+                style={{
+                  fontSize: '0.72rem',
+                  letterSpacing: '0.04em',
+                  color: mod.colorHex,
+                  backgroundColor: `${mod.colorHex}15`,
+                  border: `1px solid ${mod.colorHex}35`,
+                }}
+              >
+                {mod.tag}
+              </span>
+            </div>
+
+            <div
+              className="text-body-secondary fw-semibold text-uppercase mb-1"
+              style={{ fontSize: '0.7rem', letterSpacing: '0.08em' }}
+            >
+              {mod.categoria}
+            </div>
+
+            <h4 className="fw-bold mb-2 text-body" style={{ letterSpacing: '-0.01em' }}>
+              {mod.titulo}
+            </h4>
+
+            <p className="text-body-secondary small mb-0" style={{ lineHeight: '1.6' }}>
+              {mod.descripcion}
+            </p>
+          </div>
+
+          <div
+            className="mt-4 pt-3 border-top"
+            style={{ borderColor: 'var(--cui-border-color-translucent, rgba(0, 0, 0, 0.08))' }}
+          >
+            <Link to={mod.ruta} className="text-decoration-none d-block">
+              <CButton
+                className="w-100 fw-semibold d-flex justify-content-between align-items-center py-2 px-3 border-0"
+                style={{
+                  backgroundColor: `${mod.colorHex}18`,
+                  color: mod.colorHex,
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = mod.colorHex
+                  e.currentTarget.style.color = '#ffffff'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = `${mod.colorHex}18`
+                  e.currentTarget.style.color = mod.colorHex
+                }}
+              >
+                <span>Acceder al módulo</span>
+                <CIcon icon={cilArrowRight} />
+              </CButton>
+            </Link>
+          </div>
+        </CCardBody>
+      </CCard>
+    </CCol>
+  )
+}
 
 const Dashboard = () => {
   return (
-    <CContainer fluid className="py-3">
-      <CCard
-        className="mb-4 border-0 shadow-sm text-center"
-        style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderRadius: '16px',
-        }}
-      >
-        <CCardBody className="p-5 text-white">
-          <div className="d-inline-flex align-items-center justify-content-center p-3 mb-3 bg-success bg-opacity-10 rounded-circle">
-            <CIcon icon={cilCarAlt} size="4xl" style={{ color: '#00e676' }} />
-          </div>
-
-          <h1 className="fw-bold mb-1 tracking-wide">
-            SMART<span style={{ color: '#00e676' }}>PARKING</span>
-          </h1>
-
-          <h4 className="fw-semibold mb-3" style={{ color: '#00e676', letterSpacing: '0.5px' }}>
-            Innovando con la comunidad UTEQ
-          </h4>
-
-          <p
-            className="mx-auto mb-4"
-            style={{ maxWidth: '650px', color: '#94a3b8', fontSize: '1.05rem' }}
+    <CContainer fluid className="py-4 px-3" style={{ minHeight: '75vh' }}>
+      <div className="mb-4 mb-md-5">
+        <div
+          className="d-inline-flex align-items-center gap-2 px-3 py-1 mb-2 rounded-pill border"
+          style={{
+            borderColor: 'var(--cui-border-color, rgba(0, 0, 0, 0.12))',
+            backgroundColor: 'var(--cui-tertiary-bg, rgba(0, 0, 0, 0.03))',
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              boxShadow: '0 0 8px #10b981',
+            }}
+          />
+          <span
+            className="small text-body-secondary fw-semibold text-uppercase tracking-wider"
+            style={{ fontSize: '0.72rem' }}
           >
-            Sistema inteligente para el control, registro y gestión del acceso vehicular en el
-            campus de la Universidad Técnica Estatal de Quevedo.
-          </p>
+            Garita UTEQ
+          </span>
+        </div>
 
-          <Link to="/parqueadero/vehiculos" style={{ textDecoration: 'none' }}>
-            <CButton
-              size="lg"
-              className="fw-bold px-4 py-2 border-0"
-              style={{ backgroundColor: '#00e676', color: '#0f172a' }}
-            >
-              Ir a Vehículos y Propietarios <CIcon icon={cilArrowRight} className="ms-2" />
-            </CButton>
-          </Link>
-        </CCardBody>
-      </CCard>
+        <h1 className="fw-bold text-body display-6 mb-2" style={{ letterSpacing: '-0.02em' }}>
+          Gestión de Parqueadero
+        </h1>
 
-      <CRow>
-        <CCol md={4} className="mb-4">
-          <CCard className="h-100 border-0 shadow-sm text-center">
-            <CCardBody className="p-4 d-flex flex-column align-items-center">
-              <div className="p-3 bg-success bg-opacity-10 rounded-circle mb-3">
-                <CIcon icon={cilCarAlt} size="xl" style={{ color: '#00e676' }} />
-              </div>
-              <h5 className="fw-bold">Gestión Vehicular</h5>
-              <p className="text-body-secondary small mb-0">
-                Registro y consulta directa de los vehículos autorizados para ingresar al campus
-                UTEQ.
-              </p>
-            </CCardBody>
-          </CCard>
-        </CCol>
+        <p className="text-body-secondary mb-0" style={{ maxWidth: '640px', fontSize: '0.98rem' }}>
+          Plataforma centralizada para la supervisión, administración de plazas y control del flujo
+          vehicular en el campus universitario.
+        </p>
+      </div>
 
-        <CCol md={4} className="mb-4">
-          <CCard className="h-100 border-0 shadow-sm text-center">
-            <CCardBody className="p-4 d-flex flex-column align-items-center">
-              <div className="p-3 bg-info bg-opacity-10 rounded-circle mb-3">
-                <CIcon icon={cilShieldAlt} size="xl" className="text-info" />
-              </div>
-              <h5 className="fw-bold">Acceso Seguro</h5>
-              <p className="text-body-secondary small mb-0">
-                Verificación rápida de datos de los propietarios, docentes, estudiantes y personal
-                administrativo.
-              </p>
-            </CCardBody>
-          </CCard>
-        </CCol>
-
-        <CCol md={4} className="mb-4">
-          <CCard className="h-100 border-0 shadow-sm text-center">
-            <CCardBody className="p-4 d-flex flex-column align-items-center">
-              <div className="p-3 bg-warning bg-opacity-10 rounded-circle mb-3">
-                <CIcon icon={cilSpeedometer} size="xl" className="text-warning" />
-              </div>
-              <h5 className="fw-bold">Control de Garita</h5>
-              <p className="text-body-secondary small mb-0">
-                Optimización del flujo vehicular y tiempos de entrada en las vías del parqueadero
-                universitario.
-              </p>
-            </CCardBody>
-          </CCard>
-        </CCol>
+      <CRow className="g-4">
+        {modulos.map((mod, idx) => (
+          <TarjetaModulo key={idx} mod={mod} />
+        ))}
       </CRow>
     </CContainer>
   )

@@ -7,6 +7,7 @@ import {
   CCardFooter,
   CCardHeader,
   CCol,
+  CFormSelect,
   CRow,
   CSpinner,
 } from '@coreui/react'
@@ -43,9 +44,6 @@ const formatearFechaHora = (fecha) =>
  * Vista "Monitoreo de entrada": captura una foto (cámara o archivo),
  * la envía al endpoint OCR configurado en VITE_OCR_ENDPOINT y muestra
  * el resultado del reconocimiento de placa en tiempo real.
- *
- * Estados del flujo: vacio → camara → lista → procesando → resultado
- *                                                     ↘ error
  */
 const MonitoreoEntrada = () => {
   const [ahora, setAhora] = useState(new Date())
@@ -61,9 +59,12 @@ const MonitoreoEntrada = () => {
     activa: camaraActiva,
     iniciando: camaraIniciando,
     error: errorCamara,
+    dispositivos,
+    dispositivoSeleccionado,
     iniciar: iniciarCamara,
     detener: detenerCamara,
     capturarFoto: capturarFotoDesdeCamara,
+    seleccionarDispositivo,
   } = useCamera()
   const inputArchivoRef = useRef(null)
 
@@ -90,7 +91,7 @@ const MonitoreoEntrada = () => {
 
   const iniciarNuevaCaptura = async () => {
     reiniciarEstado('camara')
-    await iniciarCamara()
+    await iniciarCamara(dispositivoSeleccionado || undefined)
   }
 
   const cancelarCamara = () => {
@@ -146,8 +147,6 @@ const MonitoreoEntrada = () => {
     setMensajeError('')
     try {
       const data = await reconocerPlaca(archivoActual)
-      // El endpoint ya ejecuta el OCR y consulta su propia BD.
-      // La respuesta se pasa directamente a la UI.
       setResultado(data)
       setEstadoFlujo('resultado')
     } catch (errorSolicitud) {
@@ -200,6 +199,27 @@ const MonitoreoEntrada = () => {
                 className="d-none"
                 onChange={manejarArchivoSeleccionado}
               />
+
+              {/* ============ SELECTOR DE CÁMARA (solo cuando hay varias) ============ */}
+              {dispositivos.length > 1 && (
+                <div className="mb-3">
+                  <label className="form-label small text-body-secondary">
+                    Cámara a utilizar
+                  </label>
+                  <CFormSelect
+                    value={dispositivoSeleccionado}
+                    onChange={(e) => seleccionarDispositivo(e.target.value)}
+                    aria-label="Seleccionar cámara"
+                  >
+                    <option value="">Cámara por defecto (posterior en móviles)</option>
+                    {dispositivos.map((dispositivo) => (
+                      <option key={dispositivo.deviceId} value={dispositivo.deviceId}>
+                        {dispositivo.label}
+                      </option>
+                    ))}
+                  </CFormSelect>
+                </div>
+              )}
 
               {estadoFlujo === 'camara' ? (
                 <div

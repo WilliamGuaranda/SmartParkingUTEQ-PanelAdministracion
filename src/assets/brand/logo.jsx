@@ -4,7 +4,7 @@ const Logo = ({
   width = 599,
   height = 116,
   className = '',
-  title = 'Smart Parking UTEQ',
+  title = 'UTEQ — Parqueadero Institucional',
   ...props
 }) => (
   <svg
@@ -20,96 +20,99 @@ const Logo = ({
     <title>{title}</title>
 
     <g fill="none" fillRule="evenodd">
-      {/* Símbolo principal */}
-      <rect x="6" y="8" width="100" height="100" rx="24" fill="#00843D" />
+      {/* --- Isotipo Institucional Escudo UTEQ --- */}
+      <rect x="8" y="10" width="96" height="96" rx="22" fill="#007A33" />
+      
+      {/* Borde sutil dorado institucional */}
       <rect
-        x="13"
-        y="15"
-        width="86"
-        height="86"
-        rx="19"
-        stroke="#7EE2A8"
-        strokeWidth="2"
+        x="12"
+        y="14"
+        width="88"
+        height="88"
+        rx="18"
+        stroke="#E5A823"
+        strokeWidth="2.5"
+        strokeOpacity="0.85"
       />
 
-      {/* Letra P de parqueadero */}
-      <path
+      {/* Monograma UTEQ en el emblema */}
+      <text
+        x="56"
+        y="68"
         fill="#FFFFFF"
-        fillRule="nonzero"
-        d="M28 29h31.5C79.3 29 91 39.2 91 55.5S79.3 82 59.5 82H49v15H28V29Zm21 17v19h10.5C66.8 65 71 61.6 71 55.5S66.8 46 59.5 46H49Z"
-      />
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="29"
+        fontWeight="900"
+        letterSpacing="2.5"
+        textAnchor="middle"
+      >
+        UTEQ
+      </text>
 
-      {/* Señal inalámbrica del sensor */}
-      <path
-        d="M68 28c8.8 0 16.6 3.9 22 10"
-        stroke="#80D0FF"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M72 37c5.1 0 9.8 2.2 13 5.8"
-        stroke="#80D0FF"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      <circle cx="78" cy="48" r="3.5" fill="#80D0FF" />
+      {/* Detalle inferior: barra dorada con punto de estado */}
+      <rect x="36" y="78" width="40" height="3" rx="1.5" fill="#E5A823" />
 
-      {/* Indicador de puesto disponible */}
-      <circle cx="87" cy="89" r="8" fill="#7EE2A8" />
-      <path
-        d="m83.5 89 2.4 2.5 4.8-5"
-        stroke="#00843D"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      {/* Nombre del sistema */}
+      {/* --- Tipografía y Jerarquía Institucional --- */}
       <g fontFamily="Arial, Helvetica, sans-serif">
+        {/* Titular Principal: UTEQ */}
         <text
-          x="128"
-          y="57"
+          x="126"
+          y="54"
+          fill="#007A33"
+          fontSize="40"
+          fontWeight="900"
+          letterSpacing="2.5"
+        >
+          UTEQ
+        </text>
+
+        {/* Separador vertical */}
+        <rect
+          x="264"
+          y="24"
+          width="2"
+          height="34"
+          rx="1"
+          fill="currentColor"
+          opacity="0.2"
+        />
+
+        {/* Módulo PARKING */}
+        <text
+          x="280"
+          y="54"
           fill="currentColor"
           fontSize="36"
           fontWeight="800"
-          letterSpacing="1.2"
-        >
-          SMART
-        </text>
-        <text
-          x="278"
-          y="57"
-          fill="#00843D"
-          fontSize="36"
-          fontWeight="800"
-          letterSpacing="1.2"
+          letterSpacing="1.8"
         >
           PARKING
         </text>
 
-        {/* Identidad UTEQ */}
-        <rect x="129" y="69" width="54" height="25" rx="6" fill="#00843D" />
+        {/* Badge Institucional y Leyenda Inferior */}
+        <rect x="126" y="70" width="96" height="24" rx="5" fill="#E5A823" />
         <text
-          x="156"
+          x="174"
           y="87"
-          fill="#FFFFFF"
-          fontSize="16"
-          fontWeight="800"
+          fill="#1e293b"
+          fontSize="11.5"
+          fontWeight="900"
           textAnchor="middle"
           letterSpacing="1"
         >
-          UTEQ
+          CAMPUS
         </text>
+
         <text
-          x="196"
+          x="234"
           y="87"
           fill="currentColor"
-          fillOpacity="0.72"
-          fontSize="14"
-          fontWeight="600"
-          letterSpacing="1.1"
+          opacity="0.75"
+          fontSize="13.5"
+          fontWeight="700"
+          letterSpacing="1.2"
         >
-          PARQUEADERO INTELIGENTE
+          CONTROL DE ACCESO VEHICULAR
         </text>
       </g>
     </g>
