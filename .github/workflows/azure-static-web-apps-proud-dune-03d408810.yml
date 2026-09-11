@@ -27,14 +27,9 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "VITE_OCR_ENDPOINT=https://tu-url-del-docente-aqui" >> .env
-          echo "VITE_SUPABASE_URL=https://tu-url-supabase.supabase.co" >> .env
-          echo "VITE_SUPABASE_PUBLISHABLE_KEY=tu-clave-aqui" >> .env
-
-      - name: Install dependencies & Build
-        run: |
-          npm install
-          npm run build
+          echo "VITE_OCR_ENDPOINT=https://ocruteqparking-btbbfsgvezd4ehgn.eastus2-01.azurewebsites.net/api/detectar-placa?code=1gMd5punlgy-LER3wkMH7ghxX9MNeGsrSJLReBB2bS5KAzFunfP8dA==" >> .env
+          echo "VITE_SUPABASE_URL=https://pzipoxrdfpqfairhuodg.supabase.co" >> .env
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6aXBveHJkZnBxZmFpcmh1b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwOTI0OTMsImV4cCI6MjEwMzY2ODQ5M30.YEChzqX82VZnzYTnrffM3pkqQb92RlGBVVjSzqU4OPE" >> .env
 
       - name: Deploy to Azure
         id: builddeploy
@@ -43,10 +38,13 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROUD_DUNE_03D408810 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "dist"
+          app_location: "/"
           api_location: ""
-          output_location: ""
-          skip_app_build: true
+          output_location: "build"
+        env:
+          VITE_OCR_ENDPOINT: "https://ocruteqparking-btbbfsgvezd4ehgn.eastus2-01.azurewebsites.net/api/detectar-placa?code=1gMd5punlgy-LER3wkMH7ghxX9MNeGsrSJLReBB2bS5KAzFunfP8dA=="
+          VITE_SUPABASE_URL: "https://pzipoxrdfpqfairhuodg.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6aXBveHJkZnBxZmFpcmh1b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwOTI0OTMsImV4cCI6MjEwMzY2ODQ5M30.YEChzqX82VZnzYTnrffM3pkqQb92RlGBVVjSzqU4OPE"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
