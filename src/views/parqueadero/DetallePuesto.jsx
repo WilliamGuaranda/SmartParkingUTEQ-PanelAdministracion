@@ -17,7 +17,7 @@ import { cilArrowLeft } from '@coreui/icons'
 import { usePuestos } from '../../hooks/usePuestos'
 import { useHistorialPuesto } from '../../hooks/useHistorialPuesto'
 import PuestoEstadoModal from './PuestoEstadoModal'
-import HistorialPuesto from './HistorialPuesto'
+import HistorialPuesto from './HistorialPuestos'
 
 const formatoFecha = (fecha) =>
   fecha
